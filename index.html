@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diabetes Prediction</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif; background: #f1f5f9;
+      margin: 0; padding: 32px 16px; color: #172033;
+    }
+    main {
+      max-width: 480px; margin: auto; background: white;
+      padding: 26px; border-radius: 14px;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, .08);
+    }
+    h1 { margin-top: 0; font-size: 24px; }
+    p { color: #64748b; line-height: 1.5; }
+    label { display: block; margin: 13px 0 5px; font-weight: 600; }
+    input, button {
+      width: 100%; padding: 11px; border-radius: 7px;
+      border: 1px solid #cbd5e1; font-size: 15px;
+    }
+    button {
+      margin-top: 18px; border: 0; background: #2563eb;
+      color: white; font-weight: 700; cursor: pointer;
+    }
+    button:disabled { opacity: .6; cursor: wait; }
+    #result { margin-top: 18px; padding: 12px; border-radius: 8px; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Diabetes Prediction</h1>
+  <p>Enter all six values and select Predict. This is an educational demonstration, not a medical diagnosis.</p>
+
+  <form id="predictionForm">
+    <label for="Glucose">Glucose</label>
+    <input id="Glucose" type="number" min="0" step="any" required>
+
+    <label for="BloodPressure">Blood Pressure</label>
+    <input id="BloodPressure" type="number" min="0" step="any" required>
+
+    <label for="Insulin">Insulin</label>
+    <input id="Insulin" type="number" min="0" step="any" required>
+
+    <label for="BMI">BMI</label>
+    <input id="BMI" type="number" min="0" step="any" required>
+
+    <label for="DiabetesPedigreeFunction">Diabetes Pedigree Function</label>
+    <input id="DiabetesPedigreeFunction" type="number" min="0" step="any" required>
+
+    <label for="Age">Age</label>
+    <input id="Age" type="number" min="1" step="any" required>
+
+    <button id="predictButton" type="submit">Predict</button>
+  </form>
+
+  <div id="result" class="hidden" role="status"></div>
+</main>
+
+<script>
+  const API_URL = "http://127.0.0.1:8000/predict";
+  const fields = [
+    "Glucose", "BloodPressure", "Insulin",
+    "BMI", "DiabetesPedigreeFunction", "Age"
+  ];
+
+  document.getElementById("predictionForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const data = {};
+    for (const field of fields) {
+      const value = document.getElementById(field).value;
+      if (value === "") {
+        showResult("Please enter a value for " + field + ".", true);
+        return;
+      }
+      data[field] = Number(value);
+    }
+
+    const button = document.getElementById("predictButton");
+    button.disabled = true;
+    button.textContent = "Predicting...";
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      const output = await response.json();
+      if (!response.ok) {
+        throw new Error(output.detail ? JSON.stringify(output.detail) : "Request failed");
+      }
+
+      showResult(
+        "Prediction: " + output.prediction +
+        " | Probability: " + (output.probability * 100).toFixed(1) + "%"
+      );
+    } catch (error) {
+      showResult("Could not connect to the API. Check that the FastAPI server is running. " + error.message, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = "Predict";
+    }
+  });
+
+  function showResult(message, isError = false) {
+    const result = document.getElementById("result");
+    result.textContent = message;
+    result.classList.remove("hidden");
+    result.style.background = isError ? "#fee2e2" : "#dcfce7";
+    result.style.color = isError ? "#991b1b" : "#166534";
+  }
+</script>
+</body>
+</html>
